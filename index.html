@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Todo List</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="wrapper">
+      <h2>Todo list</h2>
+      <div>
+        <input type="text" id="todo-input" />
+        <button id="add-btn">Thêm</button>
+      </div>
+      <div class="fillters">
+        <button id="fillter-all">Tất cả</button>
+        <button id="fillter-active">Chưa hoàn thành</button>
+        <button id="fillter-done">Hoàn thành</button>
+      </div>
+      <p id="count"></p>
+      <ul id="todo-list"></ul>
+    </div>
+  </body>
+  <script src="./index.js"></script>
+</html>
