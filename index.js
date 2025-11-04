@@ -122,6 +122,13 @@ function renderTodo() {
       console.log(todos);
       todos.splice(index, 1);
       console.log(index);
+      //Gọi hàm toast
+      toast({
+        title: "Thành Công",
+        desc: "Bạn đã xóa công việc thành công",
+        type: "success",
+        duration: 5000,
+      });
       saveTodo();
       renderTodo();
     });
@@ -139,12 +146,72 @@ function renderTodo() {
   count.textContent = `Còn lại ${remaining}`;
 }
 
+// ==================toast message====================
+function toast({ title, desc, type, duration = 3000 }) {
+  const main = document.getElementById("toast");
+  if (main) {
+    const toast = document.createElement("div");
+
+    //bấm vào close thì remove toast
+    toast.onclick = (e) => {
+      //Kiểm tra có bấm vào nút close không
+      if (e.target.closest(".toast__close")) {
+        main.removeChild(toast);
+      }
+    };
+    const icons = {
+      success: "fa-solid fa-circle-check",
+      error: "fa-solid fa-exclamation",
+    };
+    //
+    const icon = icons[type];
+    const delay = (duration / 1000).toFixed(2);
+    const timeFades = 1000;
+    toast.classList.add("toast", `toast--${type}`);
+    toast.style.animation = `slideInLeft ease 0.3s, fadeOut linear 1s ${delay}s forwards`;
+    toast.innerHTML = `
+        <div class="toast__icon">
+          <i class="${icon}"></i>
+        </div>
+        <div class="toast__body">
+          <h3 class="toast__title">${title}</h3>
+          <p class="toast__msg">${desc}</p>
+        </div>
+        <div class="toast__close">
+          <i class="fa-solid fa-xmark"></i>
+        </div>
+    `;
+    main.appendChild(toast);
+    //Sau khoảng thời gian delay thì xóa toast đi
+    setTimeout(() => {
+      main.removeChild(toast);
+    }, duration + timeFades);
+  }
+}
+
 // ==================== Thêm công việc mới ==================
+
 function addTodo() {
   const text = input.value.trim();
-  if (text === "") return alert("Vui lòng nhập công việc!");
+  if (text === "") {
+    toast({
+      title: "Thất bại",
+      desc: "Vui lòng nhập công việc",
+      type: "error",
+      duration: 5000,
+    });
+    return;
+  }
+  //nếu input có giá trị
+  toast({
+    title: "Thành Công",
+    desc: "Đã thêm công việc thành công",
+    type: "success",
+    duration: 3000,
+  });
   todos.push({ text, done: false });
   input.value = "";
+
   saveTodo();
   renderTodo();
 }
