@@ -1,4 +1,4 @@
-// lấy phần tử html
+// ==== Lấy phần tử HTML ====
 const input = document.getElementById("todo-input");
 const btnAdd = document.getElementById("add-btn");
 const list = document.getElementById("todo-list");
@@ -7,239 +7,228 @@ const fillterActive = document.getElementById("fillter-active");
 const fillterDone = document.getElementById("fillter-done");
 const count = document.getElementById("count");
 
-//
 let todos = [];
-let fillter = "all";
+let filter = "all";
 
-// Lưu dữ liệu vào localStorage
+// ==== Local Storage ====
 function saveTodo() {
   localStorage.setItem("todos", JSON.stringify(todos));
 }
-//lấy dữ liệu từ localStorage
+
 function loadTodo() {
   const data = localStorage.getItem("todos");
-  //nếu có data
-  if (data) {
-    todos = JSON.parse(data);
-  }
+  todos = data ? JSON.parse(data) : [];
 }
 
-//========render danh sách công việc===============
+// ==== Render danh sách công việc ====
 function renderTodo() {
   list.innerHTML = "";
-  let fillteredTodos = todos;
-  if (fillter === "active") {
-    fillteredTodos = todos.filter((t) => !t.done);
-  } else if (fillter === "done") {
-    fillteredTodos = todos.filter((t) => t.done);
-  }
-  //lặp
-  fillteredTodos.forEach((todo, index) => {
+
+  // Lọc trước rồi render
+  const filtered = todos.filter((todo) => {
+    if (filter === "active") return !todo.done;
+    if (filter === "done") return todo.done;
+    return true;
+  });
+
+  filtered.forEach((todo, index) => {
     const li = document.createElement("li");
+    if (todo.done) li.classList.add("done");
+
     const span = document.createElement("span");
     span.textContent = todo.text;
     li.appendChild(span);
 
-    if (todo.done) {
-      li.classList.add("done");
-    }
-
-    //Khi click vào công việc => toggle done
+    // Toggle trạng thái done
     li.addEventListener("click", () => {
-      // đang sửa thì không toggle
-      if (li.querySelector(".edit-input")) return;
+      if (li.querySelector(".edit-input")) return; // nếu đang sửa thì bỏ qua
       todo.done = !todo.done;
       saveTodo();
       renderTodo();
     });
 
-    //Tạo div chứa hai nút
+    // ===== Div chứa nút =====
     const actionsDiv = document.createElement("div");
     actionsDiv.className = "actions";
-    // ==============Nút sửa=============
+
+    // ===== Nút sửa =====
     const editBtn = document.createElement("button");
     editBtn.textContent = "Sửa";
     editBtn.className = "edit-btn";
 
     editBtn.addEventListener("click", (e) => {
-      //ngăn chặn lan ra li
       e.stopPropagation();
 
-      // Nếu đang ở trạng thái "Sửa", chuyển sang input
-      if (editBtn.textContent === "Sửa") {
-        const inputEdit = document.createElement("input");
-        inputEdit.type = "text";
-        inputEdit.value = todo.text;
-        inputEdit.className = "edit-input";
-        //Ngăn chặn lan ra li
-        inputEdit.addEventListener("click", (e) => {
-          e.stopPropagation();
-        });
+      // Nếu đã có input => đang ở chế độ sửa, bỏ qua
+      if (li.querySelector(".edit-input")) return;
 
-        // Chèn input trước actionsDiv rồi xóa span
-        li.insertBefore(inputEdit, actionsDiv);
-        li.removeChild(span);
-        editBtn.textContent = "Lưu";
-        inputEdit.focus();
+      // Tạo input sửa
+      const inputEdit = document.createElement("input");
+      inputEdit.type = "text";
+      inputEdit.value = todo.text;
+      inputEdit.className = "edit-input";
 
-        // Khi ấn lưu hoặc Enter
-        const saveChange = () => {
-          const newText = inputEdit.value.trim();
-          if (newText !== "") {
-            todo.text = newText;
-            saveTodo();
-            renderTodo();
-          }
-        };
-        const saveClick = (e) => {
+      li.insertBefore(inputEdit, actionsDiv);
+      li.removeChild(span);
+      editBtn.textContent = "Lưu";
+      inputEdit.focus();
+
+      // Khi click ra ngoài -> thoát chế độ sửa
+      const handleClickOutside = (ev) => {
+        if (!li.contains(ev.target)) {
+          cancelEdit();
+          document.removeEventListener("click", handleClickOutside);
+        }
+      };
+      setTimeout(
+        () => document.addEventListener("click", handleClickOutside),
+        0
+      );
+
+      const saveChange = () => {
+        const newText = inputEdit.value.trim();
+        if (newText) {
+          todo.text = newText;
+          saveTodo();
+          renderTodo();
+        } else cancelEdit();
+      };
+
+      //  Hàm hủy sửa
+      const cancelEdit = () => {
+        li.removeChild(inputEdit);
+        li.insertBefore(span, actionsDiv);
+        editBtn.textContent = "Sửa";
+      };
+
+      inputEdit.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") saveChange();
+        if (e.key === "Escape") cancelEdit(); //  ESC để hủy sửa
+      });
+
+      // Khi nhấn Lưu
+      editBtn.addEventListener(
+        "click",
+        (e) => {
           e.stopPropagation();
           saveChange();
-          //Gỡ sau khi dùng
-          editBtn.removeEventListener("click", saveClick);
-        };
-        editBtn.addEventListener("click", saveClick);
-        //Khi ấn enter
-        inputEdit.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            saveChange();
-          }
-        });
-
-        return;
-      }
+        },
+        { once: true }
+      ); // chỉ lắng nghe 1 lần, tránh bị chồng sự kiện
     });
 
-    //Nút xóa
+    // ===== Nút xóa =====
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "Xóa";
     deleteBtn.className = "delete-btn";
-    //lắng nghe sự kiện click
+
     deleteBtn.addEventListener("click", (e) => {
-      //ngăn chặn lan ra li
       e.stopPropagation();
-      // xóa đi 1 phần tử tại vị trí index
       todos.splice(index, 1);
-      //Gọi hàm toast
       toast({
-        title: "Thành Công",
+        title: "Thành công",
         desc: "Bạn đã xóa công việc thành công",
         type: "success",
-        duration: 5000,
+        duration: 3000,
       });
       saveTodo();
       renderTodo();
     });
 
-    //Thêm nút vào thẻ div
-    actionsDiv.appendChild(editBtn);
-    actionsDiv.appendChild(deleteBtn);
-    //thêm nút vào li
+    actionsDiv.append(editBtn, deleteBtn);
     li.appendChild(actionsDiv);
     list.appendChild(li);
   });
 
-  //Cập nhật số lượng công việc chưa hoàn thành
+  // Cập nhật số lượng công việc còn lại
   const remaining = todos.filter((t) => !t.done).length;
   count.textContent = `Còn lại ${remaining}`;
 }
 
-// ==================toast message====================
+// ==== Toast message ====
 function toast({ title, desc, type, duration = 3000 }) {
   const main = document.getElementById("toast");
-  if (main) {
-    const toast = document.createElement("div");
-    const timeFades = 1000;
+  if (!main) return;
 
-    //Sau khoảng thời gian delay thì xóa toast đi
-    const setTimeOutId = setTimeout(() => {
-      main.removeChild(toast);
-    }, duration + timeFades);
+  const toast = document.createElement("div");
+  const timeFades = 1000;
 
-    //bấm vào close thì remove toast
-    toast.onclick = (e) => {
-      //Kiểm tra có bấm vào nút close không
-      if (e.target.closest(".toast__close")) {
-        main.removeChild(toast);
-        // Khi close thì xóa luôn hàm setTimeOut
-        clearTimeout(setTimeOutId);
-      }
-    };
-    const icons = {
-      success: "fa-solid fa-circle-check",
-      error: "fa-solid fa-exclamation",
-    };
-    //
-    const icon = icons[type];
-    const delay = (duration / 1000).toFixed(2);
-    toast.classList.add("toast", `toast--${type}`);
-    toast.style.animation = `slideInLeft ease 0.3s, fadeOut linear 1s ${delay}s forwards`;
-    toast.innerHTML = `
-        <div class="toast__icon">
-          <i class="${icon}"></i>
-        </div>
-        <div class="toast__body">
-          <h3 class="toast__title">${title}</h3>
-          <p class="toast__msg">${desc}</p>
-        </div>
-        <div class="toast__close">
-          <i class="fa-solid fa-xmark"></i>
-        </div>
-    `;
-    main.appendChild(toast);
-  }
+  const timeoutId = setTimeout(() => {
+    toast.remove();
+  }, duration + timeFades);
+
+  //Khi close clear luôn setTimeOut
+  toast.onclick = (e) => {
+    //xem có ấn vào đúng close không
+    if (e.target.closest(".toast__close")) {
+      toast.remove();
+      clearTimeout(timeoutId);
+    }
+  };
+
+  const icons = {
+    success: "fa-solid fa-circle-check",
+    error: "fa-solid fa-exclamation",
+  };
+  const icon = icons[type];
+  const delay = (duration / 1000).toFixed(2);
+  toast.classList.add("toast", `toast--${type}`);
+  toast.style.animation = `slideInLeft ease 0.3s, fadeOut linear 1s ${delay}s forwards`;
+  toast.innerHTML = `
+    <div class="toast__icon"><i class="${icon}"></i></div>
+    <div class="toast__body">
+      <h3 class="toast__title">${title}</h3>
+      <p class="toast__msg">${desc}</p>
+    </div>
+    <div class="toast__close"><i class="fa-solid fa-xmark"></i></div>
+  `;
+  main.appendChild(toast);
 }
 
-// ==================== Thêm công việc mới ==================
-
+// ==== Thêm công việc mới ====
 function addTodo() {
   const text = input.value.trim();
-  if (text === "") {
+  if (!text) {
     toast({
       title: "Thất bại",
       desc: "Vui lòng nhập công việc",
       type: "error",
-      duration: 5000,
+      duration: 3000,
     });
     return;
   }
-  //nếu input có giá trị
+
+  todos.push({ text, done: false });
   toast({
-    title: "Thành Công",
+    title: "Thành công",
     desc: "Đã thêm công việc thành công",
     type: "success",
     duration: 3000,
   });
-  todos.push({ text, done: false });
   input.value = "";
-  console.log(todos);
-
   saveTodo();
   renderTodo();
 }
 
-// ============Gắn sự kiện==========
+// ==== Gắn sự kiện ====
 btnAdd.addEventListener("click", addTodo);
-//khi ấn enter
 input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    addTodo();
-  }
+  if (e.key === "Enter") addTodo();
 });
 
-// khi ấn vào các nút lọc
 fillterAll.addEventListener("click", () => {
-  fillter = "all";
+  filter = "all";
   renderTodo();
 });
 fillterActive.addEventListener("click", () => {
-  fillter = "active";
+  filter = "active";
   renderTodo();
 });
 fillterDone.addEventListener("click", () => {
-  fillter = "done";
+  filter = "done";
   renderTodo();
 });
 
-//================Khởi tạo ============
+// ==== Khởi tạo ====
 loadTodo();
 renderTodo();
