@@ -33,8 +33,7 @@ function renderTodo() {
   } else if (fillter === "done") {
     fillteredTodos = todos.filter((t) => t.done);
   }
-
-  //
+  //lặp
   fillteredTodos.forEach((todo, index) => {
     const li = document.createElement("li");
     const span = document.createElement("span");
@@ -119,9 +118,7 @@ function renderTodo() {
       //ngăn chặn lan ra li
       e.stopPropagation();
       // xóa đi 1 phần tử tại vị trí index
-      console.log(todos);
       todos.splice(index, 1);
-      console.log(index);
       //Gọi hàm toast
       toast({
         title: "Thành Công",
@@ -151,12 +148,20 @@ function toast({ title, desc, type, duration = 3000 }) {
   const main = document.getElementById("toast");
   if (main) {
     const toast = document.createElement("div");
+    const timeFades = 1000;
+
+    //Sau khoảng thời gian delay thì xóa toast đi
+    const setTimeOutId = setTimeout(() => {
+      main.removeChild(toast);
+    }, duration + timeFades);
 
     //bấm vào close thì remove toast
     toast.onclick = (e) => {
       //Kiểm tra có bấm vào nút close không
       if (e.target.closest(".toast__close")) {
         main.removeChild(toast);
+        // Khi close thì xóa luôn hàm setTimeOut
+        clearTimeout(setTimeOutId);
       }
     };
     const icons = {
@@ -166,7 +171,6 @@ function toast({ title, desc, type, duration = 3000 }) {
     //
     const icon = icons[type];
     const delay = (duration / 1000).toFixed(2);
-    const timeFades = 1000;
     toast.classList.add("toast", `toast--${type}`);
     toast.style.animation = `slideInLeft ease 0.3s, fadeOut linear 1s ${delay}s forwards`;
     toast.innerHTML = `
@@ -182,10 +186,6 @@ function toast({ title, desc, type, duration = 3000 }) {
         </div>
     `;
     main.appendChild(toast);
-    //Sau khoảng thời gian delay thì xóa toast đi
-    setTimeout(() => {
-      main.removeChild(toast);
-    }, duration + timeFades);
   }
 }
 
@@ -211,6 +211,7 @@ function addTodo() {
   });
   todos.push({ text, done: false });
   input.value = "";
+  console.log(todos);
 
   saveTodo();
   renderTodo();
